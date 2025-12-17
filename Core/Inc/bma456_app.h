@@ -2,9 +2,10 @@
   ******************************************************************************
   * @file    bma456_app.h
   * @brief   BMA456 accelerometer application header file
-  *          Implements impact detection using high-g interrupt only
-  *          - High-g: Detects impacts >2g with 16g measurement range
-  *          - Duration: 10ms (2 samples at 200Hz) for quick response
+  *          Implements impact detection using any-motion interrupt with software filter
+  *          - Any-motion: Hardware interrupt for motion detection
+  *          - Software filter: Only triggers LED/UART for impacts >2g
+  *          - 16g measurement range for accurate high-force measurements
   ******************************************************************************
   */
 
