@@ -304,11 +304,16 @@ void bma456_app_handle_interrupt(void)
                                       accel_y_g * accel_y_g +
                                       accel_z_g * accel_z_g);
 
-            /* Send force data via UART with interrupt type indication */
+            /* Send force data via UART with interrupt type indication
+             * Buffer size increased to 100 to accommodate interrupt type prefix
+             */
             char uart_msg[100];
-            const char *int_type = (int_status & BMA456MM_HIGH_G_INT) ? 
-                                   ((int_status & BMA456MM_ANY_MOT_INT) ? "HIGH-G+ANY-MOT" : "HIGH-G") :
-                                   "ANY-MOT";
+            const char *int_type;
+            if (int_status & BMA456MM_HIGH_G_INT) {
+                int_type = (int_status & BMA456MM_ANY_MOT_INT) ? "HIGH-G+ANY-MOT" : "HIGH-G";
+            } else {
+                int_type = "ANY-MOT";
+            }
             int len = snprintf(uart_msg, sizeof(uart_msg),
                              "[%s] Force: %.2fg (X:%.2fg Y:%.2fg Z:%.2fg)\r\n",
                              int_type, magnitude_g, accel_x_g, accel_y_g, accel_z_g);
