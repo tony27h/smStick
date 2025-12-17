@@ -112,7 +112,6 @@ static void bma456_delay_us(uint32_t period, void *intf_ptr)
 HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *huart)
 {
     int8_t rslt;
-    struct bma456mm_high_g_config high_g_config;
 
     if (hi2c == NULL || huart == NULL) {
         return HAL_ERROR;
