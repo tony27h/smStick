@@ -29,6 +29,7 @@ extern "C" {
 #define BMA456_HIGH_G_THRESHOLD   2731
 
 /* High-g duration in 200Hz samples (5ms per sample)
+ * Note: High-g feature uses internal 200Hz sampling, independent of accel ODR
  * 2 samples = 10ms (quick detection for brief impacts)
  */
 #define BMA456_HIGH_G_DURATION    2
