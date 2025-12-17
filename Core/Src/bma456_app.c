@@ -188,10 +188,10 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
         return HAL_ERROR;
     }
 
-    /* Configure any-motion detection as fallback (high-g feature may not work on this hardware)
-     * Any-motion has a maximum threshold of 1g in 5.11g format
-     * Setting to maximum threshold (~1g) to approximate 2g requirement
-     * For 1g: 1 * 1365.33 ≈ 1365 (but any-motion range is 0-1g, so max is ~1365)
+    /* Configure any-motion detection as primary (high-g feature non-functional on this hardware)
+     * Any-motion range is 0-1g maximum per BMA456MM datasheet
+     * Setting to maximum threshold (~1g) as closest approximation to 2g requirement
+     * Threshold in 5.11g format: 1g = 1365 (since 1g * 1365.33 ≈ 1365)
      */
     struct bma456mm_any_no_mot_config any_mot_config;
     any_mot_config.threshold = 1365;  /* Maximum threshold in 5.11g format (~1g) */
@@ -274,8 +274,8 @@ void bma456_app_handle_interrupt(void)
     /* Read and clear interrupt status */
     rslt = bma456mm_read_int_status(&int_status, &bma456_dev);
 
-    /* Check if high-g or any-motion interrupt occurred 
-     * Note: High-g may not work on this hardware, so any-motion is primary detection
+    /* Check if high-g or any-motion interrupt occurred
+     * Note: High-g is non-functional on this hardware, any-motion is primary detection
      * Any-motion configured with max threshold (~1g) to detect strong motion
      */
     if ((rslt == BMA4_OK) && (int_status & (BMA456MM_HIGH_G_INT | BMA456MM_ANY_MOT_INT))) {
