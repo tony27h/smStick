@@ -21,10 +21,10 @@ extern "C" {
 #define BMA456_I2C_ADDR           0x18
 
 /* High-g detection threshold in 5.11g format (~2g)
- * Formula: threshold_value = (desired_g * 2048) / 16
- * For 2g: (2 * 2048) / 16 = 256
+ * Formula: threshold_value = desired_g * 1365.33 (since 3072 = 2.25g per datasheet)
+ * For 2g: 2 * 1365.33 = 2731
  */
-#define BMA456_HIGH_G_THRESHOLD   256
+#define BMA456_HIGH_G_THRESHOLD   2731
 
 /* High-g duration in 100Hz samples (10ms per sample)
  * 10 samples = 100ms
