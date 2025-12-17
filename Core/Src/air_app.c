@@ -238,7 +238,7 @@ HAL_StatusTypeDef air_app_init(I2C_HandleTypeDef *hi2c1, UART_HandleTypeDef *hua
     bsec_library_return_t br = bsec_update_subscription(s_bsec_inst, req, 1, required, &n_required);
     if (br != BSEC_OK) return HAL_ERROR;
 
-    uart_print_line("--- Air App Ready ---\r\n");
+    uart_print_line("--- BME690 Ready ---\r\n");
 
     /* Force an immediate first update+print on the first air_app_process() call */
     s_last_raw_ms   = HAL_GetTick() - PRINT_PERIOD_MS;

@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "air_app.h"
+#include "bma456_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -121,9 +122,20 @@ int main(void)
 
   if (air_app_init(&hi2c1, &huart1) != HAL_OK)
     {
-      // simple fault indication
+      /* simple fault indication */
       HAL_Delay(200);
     }
+
+  /* Initialize BMA456 accelerometer for impact detection */
+  HAL_StatusTypeDef bma_status = bma456_app_init(&hi2c1, &huart1);
+  if (bma_status != HAL_OK)
+    {
+      /* BMA456 initialization failed - continue anyway */
+
+      HAL_Delay(100);
+    }
+
+
 
   /* USER CODE END 2 */
 
@@ -465,8 +477,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_YELLO_GPIO_Port, LED_YELLO_Pin, GPIO_PIN_RESET);
+  /*Configure GPIO pin Output Level - LED is active LOW (RESET=ON, SET=OFF) */
+  HAL_GPIO_WritePin(LED_YELLO_GPIO_Port, LED_YELLO_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : LED_YELLO_Pin */
   GPIO_InitStruct.Pin = LED_YELLO_Pin;

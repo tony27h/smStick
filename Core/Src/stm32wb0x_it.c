@@ -26,7 +26,8 @@
 #include "stm32wb0x_ll_usart.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include "bma456_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -281,5 +282,34 @@ void RADIO_RRM_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+
+/**
+  * @brief  GPIO EXTI callback - handles BMA456 interrupt on PA9
+  * @param  GPIOx: GPIO port that triggered the interrupt
+  * @param  GPIO_Pin: Pin number that triggered the interrupt
+  * @retval None
+  */
+void HAL_GPIO_EXTI_Callback(GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin)
+{
+
+  if (GPIOx == GPIOA && GPIO_Pin == GPIO_PIN_9) {
+    /* BMA456 INT1 interrupt on PA9 */
+
+    bma456_app_handle_interrupt();
+  }
+}
+
+/**
+  * @brief  Timer period elapsed callback - handles LED timeout
+  * @param  htim: Timer handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM16) {
+    /* TIM16 timeout - turn off LED */
+    bma456_app_timer_callback();
+  }
+}
 
 /* USER CODE END 1 */
