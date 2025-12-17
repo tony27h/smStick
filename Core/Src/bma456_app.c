@@ -188,15 +188,7 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
         return HAL_ERROR;
     }
 
-    /* Also configure any-motion detection for testing (more sensitive) */
-    struct bma456mm_any_no_mot_config any_mot_config;
-    any_mot_config.threshold = 20;  /* Lower threshold in 5.11g format (~0.16g) */
-    any_mot_config.duration = 5;    /* 5 samples at 50Hz = 100ms */
-    any_mot_config.axes_en = BMA456MM_EN_ALL_AXIS;
-    any_mot_config.intr_bhvr = 0;
-    any_mot_config.slope = 0;
 
-    (void)bma456mm_set_any_mot_config(&any_mot_config, &bma456_dev);
 
     /* Configure INT1 pin FIRST: push-pull, active high, output enabled */
     struct bma4_int_pin_config int_config;
@@ -242,8 +234,7 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
         return HAL_ERROR;
     }
 
-    /* Map any-motion interrupt to INT1 (optional / for testing) */
-    (void)bma456mm_map_interrupt(BMA4_INTR1_MAP, BMA456MM_ANY_MOT_INT, BMA4_ENABLE, &bma456_dev);
+
 
     return HAL_OK;
 }
@@ -262,8 +253,8 @@ void bma456_app_handle_interrupt(void)
     /* Read and clear interrupt status */
     rslt = bma456mm_read_int_status(&int_status, &bma456_dev);
 
-    /* Check if high-g OR any-motion interrupt occurred */
-    if ((rslt == BMA4_OK) && (int_status & (BMA456MM_HIGH_G_INT | BMA456MM_ANY_MOT_INT))) {
+    /* Check if high-g interrupt occurred */
+    if ((rslt == BMA4_OK) && (int_status & BMA456MM_HIGH_G_INT)) {
 
         /* Turn on LED (active LOW - RESET=ON) */
         HAL_GPIO_WritePin(LED_YELLO_GPIO_Port, LED_YELLO_Pin, GPIO_PIN_RESET);
