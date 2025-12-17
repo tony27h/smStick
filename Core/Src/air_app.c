@@ -182,7 +182,6 @@ HAL_StatusTypeDef air_app_init(I2C_HandleTypeDef *hi2c1, UART_HandleTypeDef *hua
     s_huart = huart1;
     memset(&s_latest, 0, sizeof(s_latest));
 
-    uart_print_line("\r\n--- BME690 Boot ---\r\n");
 
     /* -------- RAW BME @0x77 ---------- */
     if (bme690_port_init_i2c(&s_bme_raw, s_hi2c, I2C_ADDR_BME_RAW) != BME69X_OK) return HAL_ERROR;
@@ -210,22 +209,7 @@ HAL_StatusTypeDef air_app_init(I2C_HandleTypeDef *hi2c1, UART_HandleTypeDef *hua
     }
 
     /* ---- BSEC state store init + load ---- */
-    if (bsec_state_store_init() != HAL_OK)
-    {
-        uart_print_line("BSEC state: store init FAILED\r\n");
-    }
-    else
-    {
-        if (bsec_state_store_load(s_bsec_inst) == HAL_OK)
-        {
-            s_bsec_state_loaded = 1;
-            uart_print_line("BSEC state: LOADED from flash\r\n");
-        }
-        else
-        {
-            uart_print_line("BSEC state: none/invalid (fresh start)\r\n");
-        }
-    }
+
 
     /* Subscribe to IAQ output at LP mode */
     bsec_sensor_configuration_t req[1];
@@ -238,7 +222,7 @@ HAL_StatusTypeDef air_app_init(I2C_HandleTypeDef *hi2c1, UART_HandleTypeDef *hua
     bsec_library_return_t br = bsec_update_subscription(s_bsec_inst, req, 1, required, &n_required);
     if (br != BSEC_OK) return HAL_ERROR;
 
-    uart_print_line("--- BME690 Ready ---\r\n");
+
 
     /* Force an immediate first update+print on the first air_app_process() call */
     s_last_raw_ms   = HAL_GetTick() - PRINT_PERIOD_MS;

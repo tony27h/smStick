@@ -2,7 +2,10 @@
   ******************************************************************************
   * @file    bma456_app.h
   * @brief   BMA456 accelerometer application header file
-  *          Implements movement/impact detection using high-g interrupt
+  *          Implements impact detection using any-motion interrupt with software filter
+  *          - Any-motion: Hardware interrupt for motion detection
+  *          - Software filter: Only triggers LED/UART for impacts >2g
+  *          - 16g measurement range for accurate high-force measurements
   ******************************************************************************
   */
 
@@ -20,21 +23,11 @@ extern "C" {
 /* BMA456 I2C address (7-bit) */
 #define BMA456_I2C_ADDR           0x18
 
-/* High-g detection threshold in 5.11g format (~2g)
- * Formula: threshold_value = (desired_g * 2048) / 16
- * For 2g: (2 * 2048) / 16 = 256
+/* Impact detection threshold in g (change this to adjust sensitivity)
+ * Only impacts with magnitude greater than this threshold will trigger LED/UART
+ * Default: 2.0g
  */
-#define BMA456_HIGH_G_THRESHOLD   256
-
-/* High-g duration in 100Hz samples (10ms per sample)
- * 10 samples = 100ms
- */
-#define BMA456_HIGH_G_DURATION    10
-
-/* High-g hysteresis in 0.74g format
- * For ~0.5g hysteresis: (0.5 / 0.74) * 4096 = ~2770
- */
-#define BMA456_HIGH_G_HYSTERESIS  2770
+#define BMA456_IMPACT_THRESHOLD_G 2.0f
 
 /* LED on duration in milliseconds */
 #define BMA456_LED_ON_DURATION_MS 5000

@@ -131,7 +131,6 @@ int main(void)
   if (bma_status != HAL_OK)
     {
       /* BMA456 initialization failed - continue anyway */
-
       HAL_Delay(100);
     }
 
