@@ -305,7 +305,7 @@ void bma456_app_handle_interrupt(void)
         led_timer_active = 1;
     }
 }
-
+//
 /**
   * @brief  Timer callback to turn off LED after timeout
   *         Called from TIM16 interrupt handler
