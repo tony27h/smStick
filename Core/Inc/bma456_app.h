@@ -23,6 +23,12 @@ extern "C" {
 /* BMA456 I2C address (7-bit) */
 #define BMA456_I2C_ADDR           0x18
 
+/* Impact detection threshold in g (change this to adjust sensitivity)
+ * Only impacts with magnitude greater than this threshold will trigger LED/UART
+ * Default: 2.0g
+ */
+#define BMA456_IMPACT_THRESHOLD_G 2.0f
+
 /* LED on duration in milliseconds */
 #define BMA456_LED_ON_DURATION_MS 5000
 

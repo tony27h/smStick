@@ -266,8 +266,8 @@ void bma456_app_handle_interrupt(void)
                                       accel_y_g * accel_y_g +
                                       accel_z_g * accel_z_g);
 
-            /* Software filter: Only trigger if magnitude > 2g */
-            if (magnitude_g > 2.0f) {
+            /* Software filter: Only trigger if magnitude > threshold */
+            if (magnitude_g > BMA456_IMPACT_THRESHOLD_G) {
                 /* Turn on LED (active LOW - RESET=ON) */
                 HAL_GPIO_WritePin(LED_YELLO_GPIO_Port, LED_YELLO_Pin, GPIO_PIN_RESET);
 
