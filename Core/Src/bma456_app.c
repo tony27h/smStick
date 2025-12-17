@@ -145,13 +145,13 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
     /* Wait for sensor to be ready */
     HAL_Delay(10);
 
-    /* Configure accelerometer: 8g range, 100Hz ODR
-     * Note: Changed from 2g to 8g to allow detection of high-g events up to 8g
-     * The 2g range was clipping at 2g, preventing high-g detection above 2g
+    /* Configure accelerometer: 16g range, 100Hz ODR
+     * Note: Changed to 16g to allow detection of high-g events up to 16g
+     * Provides maximum headroom for impact detection
      */
     struct bma4_accel_config accel_config;
     accel_config.odr = BMA4_OUTPUT_DATA_RATE_100HZ;
-    accel_config.range = BMA4_ACCEL_RANGE_8G;
+    accel_config.range = BMA4_ACCEL_RANGE_16G;
     accel_config.bandwidth = BMA4_ACCEL_NORMAL_AVG4;
     accel_config.perf_mode = BMA4_CONTINUOUS_MODE;
 
@@ -177,8 +177,8 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
 
     /* Configure high-g detection
      * Threshold: ~2g (in 5.11g format)
-     * Duration: 10 samples at 100Hz = 100ms
-     * Hysteresis: ~0.5g
+     * Duration: 2 samples at 200Hz = 10ms (quick detection for brief impacts)
+     * Hysteresis: ~0.2g (reduced for better sensitivity)
      * Enable all axes (X, Y, Z)
      */
     high_g_config.threshold = BMA456_HIGH_G_THRESHOLD;
@@ -187,24 +187,6 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
     high_g_config.axes_en = BMA456MM_HIGH_G_EN_ALL_AXIS;
 
     rslt = bma456mm_set_high_g_config(&high_g_config, &bma456_dev);
-    if (rslt != BMA4_OK) {
-        return HAL_ERROR;
-    }
-
-    /* Configure any-motion detection for low-force motion (1g threshold)
-     * Any-motion range is 0-1g maximum per BMA456MM datasheet
-     * Setting to maximum threshold (~1g) to detect strong motion
-     * Threshold in 5.11g format: 1g = 1365 (since 1g * 1365.33 ≈ 1365)
-     * Note: High-g detection (2g threshold) now functional with 8g range
-     */
-    struct bma456mm_any_no_mot_config any_mot_config;
-    any_mot_config.threshold = 1365;  /* Maximum threshold in 5.11g format (~1g) */
-    any_mot_config.duration = 5;      /* 5 samples at 100Hz = 50ms */
-    any_mot_config.axes_en = BMA456MM_EN_ALL_AXIS;
-    any_mot_config.intr_bhvr = 0;
-    any_mot_config.slope = 0;
-
-    rslt = bma456mm_set_any_mot_config(&any_mot_config, &bma456_dev);
     if (rslt != BMA4_OK) {
         return HAL_ERROR;
     }
@@ -254,12 +236,6 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
         return HAL_ERROR;
     }
 
-    /* Map any-motion interrupt to INT1 pin (primary detection method) */
-    rslt = bma456mm_map_interrupt(BMA4_INTR1_MAP, BMA456MM_ANY_MOT_INT, BMA4_ENABLE, &bma456_dev);
-    if (rslt != BMA4_OK) {
-        return HAL_ERROR;
-    }
-
 
     return HAL_OK;
 }
@@ -278,11 +254,10 @@ void bma456_app_handle_interrupt(void)
     /* Read and clear interrupt status */
     rslt = bma456mm_read_int_status(&int_status, &bma456_dev);
 
-    /* Check if high-g or any-motion interrupt occurred
-     * Any-motion: Triggers on motion >1g (lower threshold, more sensitive)
-     * High-g: Triggers on impacts >2g (higher threshold, less sensitive)
+    /* Check if high-g interrupt occurred
+     * High-g: Triggers on impacts >2g
      */
-    if ((rslt == BMA4_OK) && (int_status & (BMA456MM_HIGH_G_INT | BMA456MM_ANY_MOT_INT))) {
+    if ((rslt == BMA4_OK) && (int_status & BMA456MM_HIGH_G_INT)) {
 
         /* Turn on LED (active LOW - RESET=ON) */
         HAL_GPIO_WritePin(LED_YELLO_GPIO_Port, LED_YELLO_Pin, GPIO_PIN_RESET);
@@ -292,31 +267,23 @@ void bma456_app_handle_interrupt(void)
 
         if (rslt == BMA4_OK && bma456_huart != NULL) {
             /* Convert raw accelerometer data to g-force
-             * For 8g range: LSB = 4096 counts/g
-             * Formula: g = (raw_value / 4096.0)
+             * For 16g range: LSB = 2048 counts/g
+             * Formula: g = (raw_value / 2048.0)
              */
-            float accel_x_g = accel_data.x / 4096.0f;
-            float accel_y_g = accel_data.y / 4096.0f;
-            float accel_z_g = accel_data.z / 4096.0f;
+            float accel_x_g = accel_data.x / 2048.0f;
+            float accel_y_g = accel_data.y / 2048.0f;
+            float accel_z_g = accel_data.z / 2048.0f;
 
             /* Calculate magnitude of acceleration vector */
             float magnitude_g = sqrtf(accel_x_g * accel_x_g +
                                       accel_y_g * accel_y_g +
                                       accel_z_g * accel_z_g);
 
-            /* Send force data via UART with interrupt type indication
-             * Buffer size increased to 100 to accommodate interrupt type prefix
-             */
-            char uart_msg[100];
-            const char *int_type;
-            if (int_status & BMA456MM_HIGH_G_INT) {
-                int_type = (int_status & BMA456MM_ANY_MOT_INT) ? "HIGH-G+ANY-MOT" : "HIGH-G";
-            } else {
-                int_type = "ANY-MOT";
-            }
+            /* Send force data via UART */
+            char uart_msg[80];
             int len = snprintf(uart_msg, sizeof(uart_msg),
-                             "[%s] Force: %.2fg (X:%.2fg Y:%.2fg Z:%.2fg)\r\n",
-                             int_type, magnitude_g, accel_x_g, accel_y_g, accel_z_g);
+                             "HIGH-G Impact: %.2fg (X:%.2fg Y:%.2fg Z:%.2fg)\r\n",
+                             magnitude_g, accel_x_g, accel_y_g, accel_z_g);
 
             (void)HAL_UART_Transmit(bma456_huart, (uint8_t*)uart_msg, (uint16_t)len, UART_TIMEOUT_MS);
         }

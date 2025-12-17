@@ -2,9 +2,9 @@
   ******************************************************************************
   * @file    bma456_app.h
   * @brief   BMA456 accelerometer application header file
-  *          Implements movement/impact detection using high-g and any-motion interrupts
-  *          - Any-motion: Detects motion >1g (primary for low forces)
-  *          - High-g: Detects impacts >2g (now functional with 8g range)
+  *          Implements impact detection using high-g interrupt only
+  *          - High-g: Detects impacts >2g with 16g measurement range
+  *          - Duration: 10ms (2 samples at 200Hz) for quick response
   ******************************************************************************
   */
 
@@ -28,15 +28,16 @@ extern "C" {
  */
 #define BMA456_HIGH_G_THRESHOLD   2731
 
-/* High-g duration in 100Hz samples (10ms per sample)
- * 10 samples = 100ms
+/* High-g duration in 200Hz samples (5ms per sample)
+ * 2 samples = 10ms (quick detection for brief impacts)
  */
-#define BMA456_HIGH_G_DURATION    10
+#define BMA456_HIGH_G_DURATION    2
 
 /* High-g hysteresis in 0.74g format
- * For ~0.5g hysteresis: (0.5 / 0.74) * 4096 = ~2770
+ * For ~0.2g hysteresis: (0.2 / 0.74) * 1000 ≈ 270
+ * Lower hysteresis allows for more sensitive detection
  */
-#define BMA456_HIGH_G_HYSTERESIS  2770
+#define BMA456_HIGH_G_HYSTERESIS  270
 
 /* LED on duration in milliseconds */
 #define BMA456_LED_ON_DURATION_MS 5000
