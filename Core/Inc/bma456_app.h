@@ -22,7 +22,7 @@ extern "C" {
 
 /* High-g detection threshold in 5.11g format (~2g)
  * Formula: threshold_value = desired_g * 1365.33 (since 3072 = 2.25g per datasheet)
- * For 2g: 2 * 1365.33 = 2731
+ * For 2g: 2 * 1365.33 = 2730.66 ≈ 2731
  */
 #define BMA456_HIGH_G_THRESHOLD   2731
 
