@@ -2,7 +2,9 @@
   ******************************************************************************
   * @file    bma456_app.h
   * @brief   BMA456 accelerometer application header file
-  *          Implements movement/impact detection using high-g interrupt
+  *          Implements movement/impact detection using any-motion interrupt
+  *          Note: High-g feature appears non-functional on this hardware,
+  *                using any-motion with max threshold (~1g) instead
   ******************************************************************************
   */
 

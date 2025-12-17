@@ -188,6 +188,22 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
         return HAL_ERROR;
     }
 
+    /* Configure any-motion detection as fallback (high-g feature may not work on this hardware)
+     * Any-motion has a maximum threshold of 1g in 5.11g format
+     * Setting to maximum threshold (~1g) to approximate 2g requirement
+     * For 1g: 1 * 1365.33 ≈ 1365 (but any-motion range is 0-1g, so max is ~1365)
+     */
+    struct bma456mm_any_no_mot_config any_mot_config;
+    any_mot_config.threshold = 1365;  /* Maximum threshold in 5.11g format (~1g) */
+    any_mot_config.duration = 5;      /* 5 samples at 100Hz = 50ms */
+    any_mot_config.axes_en = BMA456MM_EN_ALL_AXIS;
+    any_mot_config.intr_bhvr = 0;
+    any_mot_config.slope = 0;
+
+    rslt = bma456mm_set_any_mot_config(&any_mot_config, &bma456_dev);
+    if (rslt != BMA4_OK) {
+        return HAL_ERROR;
+    }
 
 
     /* Configure INT1 pin FIRST: push-pull, active high, output enabled */
@@ -234,6 +250,11 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
         return HAL_ERROR;
     }
 
+    /* Map any-motion interrupt to INT1 pin (primary detection method) */
+    rslt = bma456mm_map_interrupt(BMA4_INTR1_MAP, BMA456MM_ANY_MOT_INT, BMA4_ENABLE, &bma456_dev);
+    if (rslt != BMA4_OK) {
+        return HAL_ERROR;
+    }
 
 
     return HAL_OK;
@@ -253,8 +274,11 @@ void bma456_app_handle_interrupt(void)
     /* Read and clear interrupt status */
     rslt = bma456mm_read_int_status(&int_status, &bma456_dev);
 
-    /* Check if high-g interrupt occurred */
-    if ((rslt == BMA4_OK) && (int_status & BMA456MM_HIGH_G_INT)) {
+    /* Check if high-g or any-motion interrupt occurred 
+     * Note: High-g may not work on this hardware, so any-motion is primary detection
+     * Any-motion configured with max threshold (~1g) to detect strong motion
+     */
+    if ((rslt == BMA4_OK) && (int_status & (BMA456MM_HIGH_G_INT | BMA456MM_ANY_MOT_INT))) {
 
         /* Turn on LED (active LOW - RESET=ON) */
         HAL_GPIO_WritePin(LED_YELLO_GPIO_Port, LED_YELLO_Pin, GPIO_PIN_RESET);
