@@ -22,11 +22,13 @@ extern "C" {
 /* BMA456 I2C address (7-bit) */
 #define BMA456_I2C_ADDR           0x18
 
-/* High-g detection threshold in 5.11g format (~2g)
+/* High-g detection threshold in 5.11g format (~3g)
  * Formula: threshold_value = desired_g * 1365.33 (since 3072 = 2.25g per datasheet)
- * For 2g: 2 * 1365.33 = 2730.66 ≈ 2731
+ * Note: Threshold must account for gravity (1g) + desired impact (2g) = 3g total
+ * When device is at rest, one axis reads ~1g (gravity). A 2g impact adds to this.
+ * For 3g: 3 * 1365.33 = 4096
  */
-#define BMA456_HIGH_G_THRESHOLD   2731
+#define BMA456_HIGH_G_THRESHOLD   4096
 
 /* High-g duration in 200Hz samples (5ms per sample)
  * Note: High-g feature uses internal 200Hz sampling, independent of accel ODR

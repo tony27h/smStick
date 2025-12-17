@@ -176,7 +176,9 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
     HAL_Delay(5);
 
     /* Configure high-g detection
-     * Threshold: ~2g (in 5.11g format)
+     * Threshold: ~3g (in 5.11g format)
+     * Note: Must account for gravity (1g) + desired impact (2g) = 3g total
+     * High-g detects per-axis threshold, so includes gravity component
      * Duration: 2 samples at 200Hz = 10ms (high-g uses internal 200Hz sampling)
      * Hysteresis: ~0.2g (reduced for better sensitivity)
      * Enable all axes (X, Y, Z)
