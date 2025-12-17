@@ -145,10 +145,13 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
     /* Wait for sensor to be ready */
     HAL_Delay(10);
 
-    /* Configure accelerometer: 2g range, 100Hz ODR */
+    /* Configure accelerometer: 8g range, 100Hz ODR
+     * Note: Changed from 2g to 8g to allow detection of high-g events up to 8g
+     * The 2g range was clipping at 2g, preventing high-g detection above 2g
+     */
     struct bma4_accel_config accel_config;
     accel_config.odr = BMA4_OUTPUT_DATA_RATE_100HZ;
-    accel_config.range = BMA4_ACCEL_RANGE_2G;
+    accel_config.range = BMA4_ACCEL_RANGE_8G;
     accel_config.bandwidth = BMA4_ACCEL_NORMAL_AVG4;
     accel_config.perf_mode = BMA4_CONTINUOUS_MODE;
 
@@ -188,10 +191,11 @@ HAL_StatusTypeDef bma456_app_init(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *h
         return HAL_ERROR;
     }
 
-    /* Configure any-motion detection as primary (high-g feature non-functional on this hardware)
+    /* Configure any-motion detection for low-force motion (1g threshold)
      * Any-motion range is 0-1g maximum per BMA456MM datasheet
-     * Setting to maximum threshold (~1g) as closest approximation to 2g requirement
+     * Setting to maximum threshold (~1g) to detect strong motion
      * Threshold in 5.11g format: 1g = 1365 (since 1g * 1365.33 ≈ 1365)
+     * Note: High-g detection (2g threshold) now functional with 8g range
      */
     struct bma456mm_any_no_mot_config any_mot_config;
     any_mot_config.threshold = 1365;  /* Maximum threshold in 5.11g format (~1g) */
@@ -275,8 +279,8 @@ void bma456_app_handle_interrupt(void)
     rslt = bma456mm_read_int_status(&int_status, &bma456_dev);
 
     /* Check if high-g or any-motion interrupt occurred
-     * Note: High-g is non-functional on this hardware, any-motion is primary detection
-     * Any-motion configured with max threshold (~1g) to detect strong motion
+     * Any-motion: Triggers on motion >1g (lower threshold, more sensitive)
+     * High-g: Triggers on impacts >2g (higher threshold, less sensitive)
      */
     if ((rslt == BMA4_OK) && (int_status & (BMA456MM_HIGH_G_INT | BMA456MM_ANY_MOT_INT))) {
 
@@ -288,23 +292,26 @@ void bma456_app_handle_interrupt(void)
 
         if (rslt == BMA4_OK && bma456_huart != NULL) {
             /* Convert raw accelerometer data to g-force
-             * For 2g range: LSB = 16384 counts/g
-             * Formula: g = (raw_value / 16384.0)
+             * For 8g range: LSB = 4096 counts/g
+             * Formula: g = (raw_value / 4096.0)
              */
-            float accel_x_g = accel_data.x / 16384.0f;
-            float accel_y_g = accel_data.y / 16384.0f;
-            float accel_z_g = accel_data.z / 16384.0f;
+            float accel_x_g = accel_data.x / 4096.0f;
+            float accel_y_g = accel_data.y / 4096.0f;
+            float accel_z_g = accel_data.z / 4096.0f;
 
             /* Calculate magnitude of acceleration vector */
             float magnitude_g = sqrtf(accel_x_g * accel_x_g +
                                       accel_y_g * accel_y_g +
                                       accel_z_g * accel_z_g);
 
-            /* Send force data via UART */
-            char uart_msg[80];
+            /* Send force data via UART with interrupt type indication */
+            char uart_msg[100];
+            const char *int_type = (int_status & BMA456MM_HIGH_G_INT) ? 
+                                   ((int_status & BMA456MM_ANY_MOT_INT) ? "HIGH-G+ANY-MOT" : "HIGH-G") :
+                                   "ANY-MOT";
             int len = snprintf(uart_msg, sizeof(uart_msg),
-                             "Impact detected! Force: %.2fg (X:%.2fg Y:%.2fg Z:%.2fg)\r\n",
-                             magnitude_g, accel_x_g, accel_y_g, accel_z_g);
+                             "[%s] Force: %.2fg (X:%.2fg Y:%.2fg Z:%.2fg)\r\n",
+                             int_type, magnitude_g, accel_x_g, accel_y_g, accel_z_g);
 
             (void)HAL_UART_Transmit(bma456_huart, (uint8_t*)uart_msg, (uint16_t)len, UART_TIMEOUT_MS);
         }
